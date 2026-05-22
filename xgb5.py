@@ -178,8 +178,16 @@ def get_breakout_candidates(df, margin=0.1):
     #   Long  if P(Up) > P(Neutral) + margin
     #   Short if P(Down) > P(Neutral) + margin
     feature_df["signal"] = 0
-    feature_df.loc[feature_df["prob_up"] > feature_df["prob_neutral"] + margin, "signal"] = 1
-    feature_df.loc[feature_df["prob_down"] > feature_df["prob_neutral"] + margin, "signal"] = -1
+    # Find which directional prob is higher after subtracting neutral
+    excess_up = feature_df["prob_up"] - feature_df["prob_neutral"]
+    excess_down = feature_df["prob_down"] - feature_df["prob_neutral"]
+
+    feature_df["signal"] = 0
+    long_mask = (excess_up > margin) & (excess_up > excess_down)
+    short_mask = (excess_down > margin) & (excess_down > excess_up)
+
+    feature_df.loc[long_mask, "signal"] = 1
+    feature_df.loc[short_mask, "signal"] = -1
 
     # The "strength" of the signal = max(P(Up), P(Down)) - P(Neutral)
     feature_df["strength"] = np.maximum(feature_df["prob_up"], feature_df["prob_down"]) - feature_df["prob_neutral"]
